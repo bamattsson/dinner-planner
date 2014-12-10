@@ -41,6 +41,46 @@ public class Solver {
 		return calculations;
 	}
 	
+	public static int simulatedAnnealing(Dinner dinner, double constant, double cooldownRate) {
+		int calculations = 0;
+		dinner.randomPlacing();
+		int n = dinner.size();
+		double maxVal = dinner.value();
+		double oldVal = maxVal;
+		int[] bestT1 = dinner.cloneTable1();
+		int[] bestT2 = dinner.cloneTable2();
+		int noChange = 0;
+		
+		do {
+			int i = (int) (Math.random() * n);
+			int j = (int) (Math.random() * n);
+			
+			dinner.switchPlaces(i, j);
+			double val = dinner.value();
+			calculations++;
+			noChange++;
+			if (val > maxVal) {
+				noChange = 0;
+				maxVal = val;
+				bestT1 = dinner.cloneTable1();
+				bestT2 = dinner.cloneTable2();
+			}
+			
+			
+			if (val > oldVal || keepNewPoint(val, oldVal, constant)) {
+				oldVal = val;
+			} else {
+				dinner.switchPlaces(i, j);
+			}
+			constant = constant * cooldownRate;
+		} while(noChange < n*n*n*0.1);
+		
+		dinner.setTable1(bestT1);
+		dinner.setTable2(bestT2);
+		
+		return calculations;
+	}
+	
 	private static boolean keepNewPoint(double val, double oldVal, double T) {
 		double probability = 1 / (1 + Math.exp((oldVal - val) / T ));
 		return probability > Math.random();
@@ -145,34 +185,35 @@ public class Solver {
 		}
 		
 		Dinner dinner = new Dinner(n, matrix);
-		
-		System.out.println("--Random:");
-		long time = System.currentTimeMillis();
-//		bruteForce(dinner);
-		dinner.randomPlacing();
-		System.out.println("time: " + (System.currentTimeMillis() - time));
-		System.out.println(dinner.value());
-		System.out.println("");
-		
-		System.out.println("--HC 10:");
-		time = System.currentTimeMillis();
-		System.out.println("Calc: " + multHC(dinner, 10));
-		System.out.println("Time: " + (System.currentTimeMillis() - time));
-		System.out.println("Val: " + dinner.value());
-		System.out.println("");
-		
-		System.out.println("--HC:");
-		time = System.currentTimeMillis();
-		System.out.println("Calc: " + hillClimbing(dinner));
-		System.out.println("time: " + (System.currentTimeMillis() - time));
-		System.out.println("Val: " + dinner.value());
-		System.out.println("");
-		
+
+		double val = 0;
+		int calc = 0;
+		for (int i = 0; i < 20; i++) {
+			calc += stochasticHillClimbing(dinner, 1.3);
+			val += dinner.value();
+		}
 		System.out.println("--SHC:");
-		time = System.currentTimeMillis();
-		System.out.println("Calc: " + stochasticHillClimbing(dinner, 1));
-		System.out.println("time: " + (System.currentTimeMillis() - time));
-		System.out.println("Val: " + dinner.value());
-		System.out.println("");
+		System.out.println("Calc:" + calc/20);
+		System.out.println("Val:" + val/20);
+		
+		val = 0;
+		calc = 0;
+		for (int i = 0; i < 20; i++) {
+			calc += simulatedAnnealing(dinner, 10, 0.999);
+			val += dinner.value();
+		}
+		System.out.println("--SA:");
+		System.out.println("Calc:" + calc/20);
+		System.out.println("Val:" + val/20);
+
+		val = 0;
+		calc = 0;
+		for (int i = 0; i < 20; i++) {
+			calc += hillClimbing(dinner);
+			val += dinner.value();
+		}
+		System.out.println("--HC:");
+		System.out.println("Calc:" + calc/20);
+		System.out.println("Val:" + val/20);
 	}
 }
