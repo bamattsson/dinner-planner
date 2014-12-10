@@ -2,7 +2,52 @@ package dinner.planner;
 
 
 public class Solver {
-	public static void hillClimbing(Dinner dinner) {
+	public static int stochasticHillClimbing(Dinner dinner, double constant) {
+		int calculations = 0;
+		dinner.randomPlacing();
+		int n = dinner.size();
+		double maxVal = dinner.value();
+		double oldVal = maxVal;
+		int[] bestT1 = dinner.cloneTable1();
+		int[] bestT2 = dinner.cloneTable2();
+		int noChange = 0;
+		
+		do {
+			int i = (int) (Math.random() * n);
+			int j = (int) (Math.random() * n);
+			
+			dinner.switchPlaces(i, j);
+			double val = dinner.value();
+			calculations++;
+			noChange++;
+			if (val > maxVal) {
+				noChange = 0;
+				maxVal = val;
+				bestT1 = dinner.cloneTable1();
+				bestT2 = dinner.cloneTable2();
+			}
+			
+			
+			if (keepNewPoint(val, oldVal, constant)) {
+				oldVal = val;
+			} else {
+				dinner.switchPlaces(i, j);
+			}
+		} while(noChange < n*n*n*0.1);
+		
+		dinner.setTable1(bestT1);
+		dinner.setTable2(bestT2);
+		
+		return calculations;
+	}
+	
+	private static boolean keepNewPoint(double val, double oldVal, double T) {
+		double probability = 1 / (1 + Math.exp((oldVal - val) / T ));
+		return probability > Math.random();
+	}
+	
+	public static int hillClimbing(Dinner dinner) {
+		int calculations = 0;
 		dinner.randomPlacing();
 		int n = dinner.size();
 		double maxVal = dinner.value();
@@ -15,6 +60,7 @@ public class Solver {
 			for (int i = 0; i < n ; i++) {
 				for (int j = 0; j < n; j++) {
 					dinner.switchPlaces(i,j);
+					calculations++;
 					double val = dinner.value();
 					if (val > maxVal) {
 						maxVal = val;
@@ -27,13 +73,15 @@ public class Solver {
 			dinner.setTable1(bestT1);
 			dinner.setTable2(bestT2);
 		} while (maxVal > oldVal);
+		return calculations;
 	}
 	
-	public static void multHC(Dinner dinner, int n) {
+	public static int multHC(Dinner dinner, int n) {
 		double best = 0;
+		int calculations = 0;
 		Dinner solution = null;
 		for (int i = 0; i < n; i++) {
-			hillClimbing(dinner);
+			calculations += hillClimbing(dinner);
 			double val = dinner.value();
 			if (val > best) {
 				best = val;
@@ -42,6 +90,7 @@ public class Solver {
 		}
 		dinner.setTable1(solution.cloneTable1());
 		dinner.setTable2(solution.cloneTable2());
+		return calculations;
 	}
 	
 	public static void bruteForce(Dinner dinner) {
@@ -103,18 +152,27 @@ public class Solver {
 		dinner.randomPlacing();
 		System.out.println("time: " + (System.currentTimeMillis() - time));
 		System.out.println(dinner.value());
-		
+		System.out.println("");
 		
 		System.out.println("--HC 10:");
 		time = System.currentTimeMillis();
-		multHC(dinner, 10);
-		System.out.println("time: " + (System.currentTimeMillis() - time));
-		System.out.println(dinner.value());
+		System.out.println("Calc: " + multHC(dinner, 10));
+		System.out.println("Time: " + (System.currentTimeMillis() - time));
+		System.out.println("Val: " + dinner.value());
+		System.out.println("");
 		
 		System.out.println("--HC:");
 		time = System.currentTimeMillis();
-		hillClimbing(dinner);
+		System.out.println("Calc: " + hillClimbing(dinner));
 		System.out.println("time: " + (System.currentTimeMillis() - time));
-		System.out.println(dinner.value());
+		System.out.println("Val: " + dinner.value());
+		System.out.println("");
+		
+		System.out.println("--SHC:");
+		time = System.currentTimeMillis();
+		System.out.println("Calc: " + stochasticHillClimbing(dinner, 1));
+		System.out.println("time: " + (System.currentTimeMillis() - time));
+		System.out.println("Val: " + dinner.value());
+		System.out.println("");
 	}
 }
